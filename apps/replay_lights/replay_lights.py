@@ -77,8 +77,15 @@ class ReplayLights(hass.Hass):
      self.run_hourly(self.scheduleNextEventBatch, datetime.now() + timedelta(seconds=5))
 
   def scheduleNextEventBatch(self,kwargs):
-     databaseType=self.databaseType
+
+     # exit if replay not enabled
+     replay_enable = self.get_state(self.enableTag)
+     if replay_enable != self.enableVal:
+        self.log(f"Skipping scheduled batch because {self.enableTag} is not enabled")
+        return
      
+     databaseType=self.databaseType
+
      # set replay time based on input_number, or config file or default to 7
      try:
         days_back = int(float(self.get_state("input_number.replay_days_back")))
@@ -169,9 +176,5 @@ class ReplayLights(hass.Hass):
 
 
   def executeEvent(self, kwargs):
-     replay_enable = self.get_state(self.enableTag)
-     if replay_enable == self.enableVal:
-        self.call_service(f"{self.devType}/turn_{kwargs['event_new_state']}", entity_id = kwargs['entity_id'])
-        self.log(f"turned {kwargs['entity_id']} {kwargs['event_new_state']}")
-     else:
-        self.log(f"did not turn {kwargs['entity_id']} {kwargs['event_new_state']} because {self.enableTag} is not on")
+     self.call_service(f"{self.devType}/turn_{kwargs['event_new_state']}", entity_id = kwargs['entity_id'])
+     self.log(f"turned {kwargs['entity_id']} {kwargs['event_new_state']}")
